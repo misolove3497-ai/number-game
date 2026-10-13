@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>용의 탑: 숫자 기억력 테스트</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cinzel & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fantasy: ['Cinzel', 'serif'],
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    },
+                    colors: {
+                        dragonGold: '#ffd700',
+                        dragonRed: '#e11d48',
+                        stageFlame: '#f97316',
+                        stageFrost: '#38bdf8',
+                        stageThunder: '#eab308',
+                        stageVenom: '#a855f7',
+                        stageAbyss: '#ec4899',
+                        stageBoss: '#dc2626'
+                    },
+                    boxShadow: {
+                        'glow-gold': '0 0 15px rgba(255, 215, 0, 0.5)',
+                        'glow-red': '0 0 20px rgba(225, 29, 72, 0.6)',
+                        'glow-purple': '0 0 20px rgba(168, 85, 247, 0.6)',
+                        'glow-cyan': '0 0 20px rgba(56, 189, 248, 0.6)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #080b12;
+            color: #f3f4f6;
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .bg-tower-pattern {
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(225, 29, 72, 0.18) 0%, transparent 75%),
+                radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
+            background-size: 100% 100%, 24px 24px;
+        }
+        .pulse-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.4)); }
+            50% { filter: drop-shadow(0 0 18px rgba(255, 215, 0, 0.9)); }
+        }
+        .dragon-aura {
+            animation: dragonAura 1.8s infinite alternate ease-in-out;
+        }
+        @keyframes dragonAura {
+            0% { filter: drop-shadow(0 0 8px rgba(225, 29, 72, 0.5)); transform: scale(1); }
+            100% { filter: drop-shadow(0 0 22px rgba(239, 68, 68, 0.9)); transform: scale(1.03); }
+        }
+        .keypad-btn:active {
+            transform: scale(0.92);
+            filter: brightness(1.3);
+        }
+        .shake-err {
+            animation: shakeErr 0.35s ease-in-out;
+        }
+        @keyframes shakeErr {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .auto-pop {
+            animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0d1322; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-tower-pattern min-h-screen flex flex-col justify-between overflow-x-hidden antialiased">
+
+    <!-- TOP HEADER / STATUS HUD -->
+    <header class="sticky top-0 z-30 bg-gray-950/90 backdrop-blur-md border-b border-gray-800/80 px-4 py-2.5 shadow-xl">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <!-- App Logo / Title -->
+            <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('tower')">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 via-rose-600 to-red-700 flex items-center justify-center text-white shadow-glow-red">
+                    <i class="fa-solid fa-dragon text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-fantasy font-black text-amber-400 text-sm tracking-widest leading-none">DRAGON TOWER</h1>
+                    <p class="text-[10px] text-gray-400 font-medium">용의 탑: 숫자 기억력 테스트</p>
+                </div>
+            </div>
+
+            <!-- Hearts & Infinite Score HUD -->
+            <div class="flex items-center gap-2">
+                <!-- Hearts Counter -->
+                <div class="flex items-center bg-gray-900/90 border border-gray-800 rounded-full px-3 py-1 shadow-inner">
+                    <i class="fa-solid fa-heart text-red-500 text-sm mr-1.5 animate-pulse"></i>
+                    <span id="hud-hearts-count" class="font-bold text-white text-xs">5/5</span>
+                    <span id="hud-heart-timer" class="text-[10px] text-amber-400 font-mono ml-2 hidden">09:59</span>
+                </div>
+                <!-- High Score Counter -->
+                <div class="flex items-center bg-gray-900/90 border border-gray-800 rounded-full px-2.5 py-1">
+                    <i class="fa-solid fa-trophy text-amber-400 text-xs mr-1"></i>
+                    <span id="hud-infinite-score" class="font-bold text-amber-300 text-xs">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="max-w-md mx-auto w-full flex-1 px-4 py-4 pb-24">
+
+        <!-- TAB 1: TOWER MAP (50 Main Levels) -->
+        <section id="tab-tower" class="tab-content space-y-4">
+            <!-- Stage Selector Tabs -->
+            <div class="flex bg-gray-900/90 p-1.5 rounded-xl border border-gray-800 text-xs font-semibold overflow-x-auto gap-1">
+                <button onclick="switchStage(1)" id="stage-btn-1" class="stage-tab-btn flex-1 min-w-[65px] py-2 px-1 rounded-lg text-center transition-all">
+                    1층 (화염)
+                </button>
+                <button onclick="switchStage(2)" id="stage-btn-2" class="stage-tab-btn flex-1 min-w-[65px] py-2 px-1 rounded-lg text-center transition-all">
+                    2층 (서리)
+                </button>
+                <button onclick="switchStage(3)" id="stage-btn-3" class="stage-tab-btn flex-1 min-w-[65px] py-2 px-1 rounded-lg text-center transition-all">
+                    3층 (뇌전)
+                </button>
+                <button onclick="switchStage(4)" id="stage-btn-4" class="stage-tab-btn flex-1 min-w-[65px] py-2 px-1 rounded-lg text-center transition-all">
+                    4층 (독무)
+                </button>
+                <button onclick="switchStage(5)" id="stage-btn-5" class="stage-tab-btn flex-1 min-w-[65px] py-2 px-1 rounded-lg text-center transition-all">
+                    5층 (심연)
+                </button>
+            </div>
+
+            <!-- Active Stage Banner -->
+            <div id="stage-banner" class="relative rounded-2xl p-5 border border-amber-500/30 overflow-hidden shadow-xl transition-all duration-300">
+                <div class="relative z-10 flex items-center justify-between">
+                    <div>
+                        <span id="stage-subtitle" class="text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-0.5 rounded-full bg-black/60 text-amber-300 border border-amber-500/30">
+                            Stage 1
+                        </span>
+                        <h2 id="stage-title" class="text-xl font-black text-white mt-1">화염의 용탑</h2>
+                        <p id="stage-desc" class="text-xs text-gray-300 mt-0.5">뜨거운 화염 속에서 기억력을 다듬으세요. (1~10단계)</p>
+                    </div>
+                    <div id="stage-dragon-icon" class="text-4xl text-amber-500 opacity-90 drop-shadow">
+                        <i class="fa-solid fa-fire text-amber-500"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level Grid (10 Levels per stage) -->
+            <div id="level-grid" class="grid grid-cols-2 gap-3 pt-1">
+                <!-- Dynamically generated levels -->
+            </div>
+
+            <!-- Endless Mode Portal Card -->
+            <div onclick="switchTab('infinite')" class="bg-gradient-to-r from-rose-950/90 via-red-900/80 to-purple-950/90 border-2 border-rose-500/60 p-4 rounded-2xl cursor-pointer hover:border-rose-400 transition-all shadow-glow-red flex items-center justify-between group mt-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-xl bg-rose-600/30 border border-rose-400/50 flex items-center justify-center text-rose-300 text-2xl dragon-aura">
+                        <i class="fa-solid fa-dragon"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-extrabold bg-rose-500 text-white px-2 py-0.5 rounded-full">탑 최상층</span>
+                        <h3 class="text-sm font-black text-white mt-0.5 group-hover:text-amber-300 transition-colors">거대 용의 둥지 (무한 챌린지)</h3>
+                        <p class="text-[11px] text-rose-200/80">자동 제출 & 3초 압박 속 끝없는 난이도 폭발!</p>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-rose-400 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+        </section>
+
+        <!-- TAB 2: INFINITE CHALLENGE MODE (거대 용의 둥지) -->
+        <section id="tab-infinite" class="tab-content hidden space-y-4">
+            <div class="relative bg-gradient-to-b from-rose-950 via-gray-900 to-gray-950 border-2 border-rose-600/70 p-6 rounded-2xl text-center shadow-glow-red overflow-hidden">
+                <div class="w-20 h-20 mx-auto rounded-full bg-rose-600/20 border-2 border-rose-500 flex items-center justify-center text-rose-400 text-4xl mb-3 dragon-aura">
+                    <i class="fa-solid fa-dragon"></i>
+                </div>
+                <span class="text-[10px] font-black tracking-widest text-rose-400 uppercase bg-black/60 px-3 py-1 rounded-full border border-rose-500/40">
+                    INFINITE BOSS CHALLENGE
+                </span>
+                <h2 class="text-2xl font-black text-white mt-2">거대 용의 둥지</h2>
+                <p class="text-xs text-gray-300 mt-1 max-w-xs mx-auto">
+                    한계를 시험하세요! 자릿수 지정 완료 즉시 <strong class="text-amber-300">자동 제출</strong>되며 3층마다 점수가 기하급수적으로 폭증합니다.
+                </p>
+
+                <!-- Infinite Stats Summary -->
+                <div class="grid grid-cols-2 gap-3 mt-5 bg-black/50 p-3 rounded-xl border border-rose-900/50">
+                    <div class="text-center">
+                        <p class="text-[10px] text-gray-400">최고 도달 층수</p>
+                        <p id="inf-best-floor" class="text-xl font-black text-amber-400 mt-0.5">0 층</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[10px] text-gray-400">최고 점수 (High Score)</p>
+                        <p id="inf-high-score" class="text-xl font-black text-rose-400 font-mono mt-0.5">0</p>
+                    </div>
+                </div>
+
+                <button onclick="startInfiniteGame()" class="w-full mt-5 bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold py-4 rounded-xl text-base shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-fire text-amber-300"></i> 무한 챌린지 도전 (❤️ 1 소모)
+                </button>
+            </div>
+
+            <div class="bg-gray-900/90 p-4 rounded-2xl border border-gray-800 space-y-2">
+                <h3 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-yellow-400"></i> 자동 제출 & 스피드 룰
+                </h3>
+                <ul class="text-xs text-gray-300 space-y-1.5 list-disc list-inside">
+                    <li><strong class="text-amber-300">자동 제출 기능:</strong> 숫자를 필요한 자릿수만큼 누르면 <span class="text-emerald-400 font-bold">버튼 클릭 없이 즉시 정답 검사</span>!</li>
+                    <li><strong class="text-white">3초 제한시간:</strong> 숫자가 사라지자마자 <span class="text-red-400 font-bold">3.0초</span> 이내 완료해야 성공.</li>
+                    <li><strong class="text-white">점수 배율:</strong> 고층으로 갈수록 기본 점수가 기하급수적 상승하며 남은 입력시간 보너스 추가!</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- TAB 3: MISSIONS (미션 & 업적) -->
+        <section id="tab-missions" class="tab-content hidden space-y-4">
+            <div class="bg-gray-900/90 p-4 rounded-2xl border border-gray-800">
+                <h2 class="text-lg font-bold text-amber-400 mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-scroll"></i> 미션 & 업적
+                </h2>
+                <p class="text-xs text-gray-400">미션을 완수하고 하트를 보상으로 획득하세요.</p>
+                
+                <div class="flex border-b border-gray-800 mt-4 text-xs font-bold text-gray-400 gap-4">
+                    <button onclick="switchMissionSubtab('daily')" id="subtab-daily" class="pb-2 border-b-2 border-amber-400 text-amber-400">일일 미션</button>
+                    <button onclick="switchMissionSubtab('weekly')" id="subtab-weekly" class="pb-2 border-b-2 border-transparent">주간 미션</button>
+                    <button onclick="switchMissionSubtab('monthly')" id="subtab-monthly" class="pb-2 border-b-2 border-transparent">월간 미션</button>
+                    <button onclick="switchMissionSubtab('achieve')" id="subtab-achieve" class="pb-2 border-b-2 border-transparent">업적</button>
+                </div>
+            </div>
+
+            <div id="mission-list" class="space-y-3">
+                <!-- Dynamically populated missions -->
+            </div>
+        </section>
+
+        <!-- TAB 4: SHOP (상점) -->
+        <section id="tab-shop" class="tab-content hidden space-y-4">
+            <div class="bg-gradient-to-r from-purple-950 via-gray-900 to-indigo-950 p-5 rounded-2xl border border-purple-500/40 text-center shadow-lg">
+                <div class="w-12 h-12 mx-auto rounded-full bg-purple-500/20 flex items-center justify-center text-purple-300 text-2xl mb-2 border border-purple-400/40">
+                    <i class="fa-solid fa-gem"></i>
+                </div>
+                <h2 class="text-lg font-bold text-white">용의 보물 상점</h2>
+                <p class="text-xs text-gray-300 mt-1">무료 광고 시청 및 시뮬레이션 결제로 하트를 충전하세요!</p>
+            </div>
+
+            <div class="bg-gray-900/90 p-4 rounded-2xl border border-gray-800 space-y-3">
+                <h3 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-play text-red-500"></i> 무료 하트 충전 (광고 시청)
+                </h3>
+                <div class="bg-gray-800/80 p-3.5 rounded-xl flex items-center justify-between border border-gray-700/60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-film"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-white">짧은 영상 광고 보기</p>
+                            <p class="text-[11px] text-gray-400">5초 시청 후 하트 +1 즉시 지급</p>
+                        </div>
+                    </div>
+                    <button onclick="watchRewardAd()" class="bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg shadow transition-all active:scale-95 flex items-center gap-1">
+                        <i class="fa-solid fa-heart text-white"></i> +1 획득
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-gray-900/90 p-4 rounded-2xl border border-gray-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-cart-shopping"></i> 하트 패키지 (테스트 결제)
+                    </h3>
+                    <span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">테스트 모드</span>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3">
+                    <div class="bg-gray-800/80 p-3.5 rounded-xl flex items-center justify-between border border-gray-700/60">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-black">
+                                ❤️x5
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-white">하트 5개 팩</p>
+                                <p class="text-[11px] text-gray-400">도전 기회 5회 추가</p>
+                            </div>
+                        </div>
+                        <button onclick="buyTestItem('하트 5개 팩', 5, '1,200원')" class="bg-amber-500 hover:bg-amber-400 text-gray-950 text-xs font-extrabold px-3.5 py-2 rounded-lg transition-all active:scale-95 shadow">
+                            ₩ 1,200
+                        </button>
+                    </div>
+
+                    <div class="bg-gray-800/80 p-3.5 rounded-xl flex items-center justify-between border border-gray-700/60">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center text-sm font-black">
+                                ❤️x15
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-white">하트 대용량 15개 팩</p>
+                                <p class="text-[11px] text-gray-400">가장 인기 있는 선택!</p>
+                            </div>
+                        </div>
+                        <button onclick="buyTestItem('하트 15개 팩', 15, '3,300원')" class="bg-amber-500 hover:bg-amber-400 text-gray-950 text-xs font-extrabold px-3.5 py-2 rounded-lg transition-all active:scale-95 shadow">
+                            ₩ 3,300
+                        </button>
+                    </div>
+
+                    <div class="bg-gray-800/80 p-3.5 rounded-xl flex items-center justify-between border border-purple-500/50 bg-gradient-to-r from-purple-900/30 to-gray-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-infinity"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-white">무제한 하트 (24시간)</p>
+                                <p class="text-[11px] text-purple-300">24시간 동안 소모 없이 도전</p>
+                            </div>
+                        </div>
+                        <button onclick="buyUnlimitedPass()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-all active:scale-95 shadow">
+                            ₩ 9,900
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: STATS & RANK (성적표) -->
+        <section id="tab-stats" class="tab-content hidden space-y-4">
+            <div class="bg-gradient-to-br from-gray-900 via-gray-850 to-gray-950 p-5 rounded-2xl border border-gray-700 text-center relative overflow-hidden shadow-xl">
+                <div id="rank-badge-icon" class="w-16 h-16 mx-auto rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-3xl mb-2 pulse-glow">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">현재 기억력 칭호</p>
+                <h2 id="rank-title" class="text-xl font-black text-amber-400 mt-0.5">견습 모험가</h2>
+                <p id="rank-desc" class="text-xs text-gray-300 mt-1">용의 탑 입구를 기웃거리고 있습니다.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-gray-900/90 p-4 rounded-xl border border-gray-800">
+                    <p class="text-[11px] text-gray-400">메인 최고 달성</p>
+                    <p id="stat-max-level" class="text-2xl font-black text-white mt-1">1단계</p>
+                </div>
+                <div class="bg-gray-900/90 p-4 rounded-xl border border-gray-800">
+                    <p class="text-[11px] text-gray-400">무한 모드 최고 점수</p>
+                    <p id="stat-inf-score" class="text-2xl font-black text-rose-400 font-mono mt-1">0</p>
+                </div>
+                <div class="bg-gray-900/90 p-4 rounded-xl border border-gray-800">
+                    <p class="text-[11px] text-gray-400">무한 모드 최고 층수</p>
+                    <p id="stat-inf-floor" class="text-2xl font-black text-amber-400 mt-1">0층</p>
+                </div>
+                <div class="bg-gray-900/90 p-4 rounded-xl border border-gray-800">
+                    <p class="text-[11px] text-gray-400">완료한 미션</p>
+                    <p id="stat-completed-missions" class="text-2xl font-black text-cyan-400 mt-1">0개</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-900/90 p-4 rounded-2xl border border-gray-800 space-y-3">
+                <h3 class="text-xs font-bold text-gray-300">데이터 관리</h3>
+                <button onclick="confirmResetData()" class="w-full bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-300 text-xs font-bold py-3 rounded-xl transition-all">
+                    <i class="fa-solid fa-trash-can mr-1.5"></i> 진행 데이터 초기화 (Reset)
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 z-30 bg-gray-950/95 backdrop-blur-md border-t border-gray-800 py-2">
+        <div class="max-w-md mx-auto flex items-center justify-around text-center">
+            <button onclick="switchTab('tower')" id="nav-tower" class="nav-btn active flex-1 py-1 text-amber-400 flex flex-col items-center gap-1 transition-all">
+                <i class="fa-solid fa-castle text-lg"></i>
+                <span class="text-[10px] font-bold">용의 탑</span>
+            </button>
+            <button onclick="switchTab('infinite')" id="nav-infinite" class="nav-btn flex-1 py-1 text-gray-400 hover:text-gray-200 flex flex-col items-center gap-1 transition-all">
+                <i class="fa-solid fa-fire text-lg"></i>
+                <span class="text-[10px] font-bold">무한 챌린지</span>
+            </button>
+            <button onclick="switchTab('missions')" id="nav-missions" class="nav-btn flex-1 py-1 text-gray-400 hover:text-gray-200 flex flex-col items-center gap-1 transition-all">
+                <i class="fa-solid fa-scroll text-lg"></i>
+                <span class="text-[10px] font-bold">미션</span>
+            </button>
+            <button onclick="switchTab('shop')" id="nav-shop" class="nav-btn flex-1 py-1 text-gray-400 hover:text-gray-200 flex flex-col items-center gap-1 transition-all">
+                <i class="fa-solid fa-store text-lg"></i>
+                <span class="text-[10px] font-bold">상점</span>
+            </button>
+            <button onclick="switchTab('stats')" id="nav-stats" class="nav-btn flex-1 py-1 text-gray-400 hover:text-gray-200 flex flex-col items-center gap-1 transition-all">
+                <i class="fa-solid fa-chart-column text-lg"></i>
+                <span class="text-[10px] font-bold">성적표</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- GAMEPLAY MODAL / ARENA -->
+    <div id="game-modal" class="fixed inset-0 z-50 bg-gray-950/98 backdrop-blur-md flex flex-col justify-between p-4 hidden">
+        <!-- Game Header HUD -->
+        <div class="flex items-center justify-between">
+            <button onclick="closeGameModal()" class="w-9 h-9 rounded-full bg-gray-800 text-gray-300 flex items-center justify-center hover:bg-gray-700">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="text-center">
+                <span id="game-stage-badge" class="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    STAGE 1
+                </span>
+                <h3 id="game-level-title" class="text-base font-black text-white mt-0.5">LEVEL 1</h3>
+            </div>
+            <div id="game-score-box" class="text-right hidden">
+                <p class="text-[9px] text-gray-400">현재 점수</p>
+                <p id="game-current-score" class="text-xs font-black text-amber-300 font-mono">0</p>
+            </div>
+            <div id="game-score-spacer" class="w-9"></div>
+        </div>
+
+        <!-- Main Gameplay Area -->
+        <div class="my-auto flex flex-col items-center justify-center space-y-4 w-full max-w-xs mx-auto">
+            <div class="text-center">
+                <p id="game-phase-label" class="text-sm font-extrabold text-amber-400 uppercase tracking-widest animate-pulse">
+                    준비하세요...
+                </p>
+                <p id="game-input-timer-text" class="text-xs font-mono font-bold text-red-400 mt-1 hidden">
+                    입력 제한시간: <span id="input-timer-sec" class="text-sm text-white">3.0</span>초
+                </p>
+            </div>
+
+            <!-- Number Memory Box -->
+            <div id="game-number-box" class="w-full bg-gray-900 border-2 border-amber-500/50 rounded-2xl p-5 min-h-[110px] flex items-center justify-center shadow-2xl relative overflow-hidden transition-all">
+                <span id="game-number-display" class="font-mono font-black text-3xl sm:text-4xl tracking-widest text-white text-center break-all">
+                    ---
+                </span>
+                <!-- Visual Timer Bar -->
+                <div id="game-timer-bar" class="absolute bottom-0 left-0 h-2 bg-gradient-to-r from-emerald-400 via-amber-400 to-red-500 transition-all duration-75" style="width: 0%;"></div>
+            </div>
+
+            <div class="flex items-center justify-between w-full text-xs text-gray-400 px-1">
+                <p>자릿수: <span id="game-digit-count" class="font-bold text-amber-300">3</span>자리</p>
+                <p class="text-emerald-400 font-extrabold flex items-center gap-1">
+                    <i class="fa-solid fa-bolt text-[10px]"></i> 자릿수 채우면 자동 제출!
+                </p>
+            </div>
+        </div>
+
+        <!-- On-Screen Keypad -->
+        <div id="game-keypad-container" class="w-full max-w-xs mx-auto space-y-2 opacity-40 pointer-events-none transition-opacity">
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="pressKey('1')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">1</button>
+                <button onclick="pressKey('2')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">2</button>
+                <button onclick="pressKey('3')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">3</button>
+                <button onclick="pressKey('4')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">4</button>
+                <button onclick="pressKey('5')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">5</button>
+                <button onclick="pressKey('6')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">6</button>
+                <button onclick="pressKey('7')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">7</button>
+                <button onclick="pressKey('8')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">8</button>
+                <button onclick="pressKey('9')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">9</button>
+                <button onclick="pressKey('clear')" class="keypad-btn bg-red-950/70 hover:bg-red-900/90 text-red-300 font-bold text-xs py-3.5 rounded-xl border border-red-800/60 shadow">지우기</button>
+                <button onclick="pressKey('0')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-white font-mono text-xl font-bold py-3.5 rounded-xl border border-gray-700 shadow">0</button>
+                <button onclick="pressKey('back')" class="keypad-btn bg-gray-800 hover:bg-gray-700 text-amber-400 font-bold text-lg py-3.5 rounded-xl border border-gray-700 shadow"><i class="fa-solid fa-delete-left"></i></button>
+            </div>
+
+            <button onclick="submitAnswer()" id="game-submit-btn" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-gray-950 font-black py-3.5 rounded-xl shadow-lg transition-all active:scale-95 text-base mt-2 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-circle-check"></i> 정답 확인 (자동 작동)
+            </button>
+        </div>
+    </div>
+
+    <!-- RESULT MODAL -->
+    <div id="result-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-900 border border-gray-700 rounded-2xl max-w-xs w-full p-6 text-center space-y-4 shadow-2xl relative overflow-hidden auto-pop">
+            <div id="result-icon-box" class="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl shadow-inner">
+                <i id="result-icon" class="fa-solid fa-dragon"></i>
+            </div>
+
+            <div>
+                <h3 id="result-title" class="text-xl font-black text-white">클리어 성공!</h3>
+                <p id="result-desc" class="text-xs text-gray-300 mt-1">완벽하게 숫자를 기억했습니다.</p>
+            </div>
+
+            <div id="result-stars" class="flex justify-center gap-2 text-2xl text-amber-400">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+            </div>
+
+            <div id="result-score-breakdown" class="bg-gray-800/90 p-3 rounded-xl text-xs space-y-1.5 border border-gray-700/60 hidden">
+                <div class="flex justify-between text-gray-300">
+                    <span>획득 기본 점수:</span>
+                    <span id="res-base-score" class="font-mono font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between text-gray-300">
+                    <span>속도 보너스:</span>
+                    <span id="res-bonus-score" class="font-mono font-bold text-emerald-400">+0</span>
+                </div>
+                <div class="border-t border-gray-700 pt-1 flex justify-between font-bold text-amber-300">
+                    <span>누적 총 점수:</span>
+                    <span id="res-total-score" class="font-mono text-sm">0</span>
+                </div>
+            </div>
+
+            <div class="bg-gray-800/80 p-3 rounded-xl text-xs space-y-1 text-left border border-gray-700/60">
+                <p class="text-gray-400">출제된 숫자: <span id="res-target-num" class="font-mono font-bold text-white">---</span></p>
+                <p class="text-gray-400">입력한 숫자: <span id="res-user-num" class="font-mono font-bold text-amber-300">---</span></p>
+            </div>
+
+            <div class="space-y-2 pt-2">
+                <button id="result-next-btn" onclick="nextLevelFromResult()" class="w-full bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold py-3 rounded-xl transition-all shadow">
+                    다음 단계 도전
+                </button>
+                <button onclick="closeResultModal()" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2.5 rounded-xl transition-all text-xs">
+                    목록으로 돌아가기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REWARD AD MODAL -->
+    <div id="ad-modal" class="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-6 hidden">
+        <div class="flex items-center justify-between text-xs text-gray-400">
+            <span class="bg-red-600 text-white font-bold px-2 py-0.5 rounded">광고 시청 중</span>
+            <span id="ad-timer-text" class="font-mono">남은 시간: 5초</span>
+        </div>
+
+        <div class="my-auto text-center space-y-4 max-w-xs mx-auto">
+            <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 to-red-600 flex items-center justify-center text-white text-3xl shadow-lg animate-bounce">
+                <i class="fa-solid fa-dragon"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white">용의 탑 프리미엄 광고</h3>
+            <p class="text-xs text-gray-300">동영상을 끝까지 시청하시면 하트 1개가 보상으로 지급됩니다!</p>
+            
+            <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden border border-gray-700">
+                <div id="ad-progress-bar" class="bg-red-500 h-full w-0 transition-all duration-1000 ease-linear"></div>
+            </div>
+        </div>
+
+        <button id="ad-close-btn" onclick="finishRewardAd()" class="w-full bg-gray-800 text-gray-500 font-bold py-3 rounded-xl cursor-not-allowed opacity-50" disabled>
+            보상 받는 중...
+        </button>
+    </div>
+
+    <!-- PAYMENT MODAL -->
+    <div id="pay-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-900 border border-gray-700 rounded-2xl max-w-xs w-full p-6 text-center space-y-4 shadow-2xl">
+            <div class="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl border border-emerald-500/40">
+                <i class="fa-solid fa-credit-card"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">테스트 결제 승인</h3>
+                <p id="pay-modal-desc" class="text-xs text-gray-300 mt-1">상품: 하트 5개 팩 (1,200원)</p>
+            </div>
+            <p class="text-[11px] text-amber-400 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                * 실제 금액이 차감되지 않는 테스트 결제 모드입니다.
+            </p>
+            <div class="space-y-2">
+                <button onclick="confirmPayment()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold py-3 rounded-xl transition-all shadow">
+                    결제 완료하기
+                </button>
+                <button onclick="closePayModal()" class="w-full bg-gray-800 text-gray-300 font-bold py-2 rounded-xl text-xs">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white border border-amber-500/50 text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl transition-all opacity-0 pointer-events-none transform -translate-y-2">
+        <span id="toast-msg">메시지</span>
+    </div>
+
+    <script>
+        /* CONSTANTS & GAME STATE */
+        const MAX_HEARTS = 5;
+        const HEART_RECHARGE_TIME = 600; // 10 minutes in seconds
+        const INPUT_TIME_LIMIT = 3000; // 3-second strict input limit
+
+        let gameState = {
+            hearts: 5,
+            lastHeartTime: Date.now(),
+            unlimitedUntil: 0,
+            clearedLevels: {},
+            completedMissions: [],
+            activeStage: 1,
+            activeMissionSubtab: 'daily',
+            infiniteHighScore: 0,
+            infiniteMaxFloor: 0
+        };
+
+        let currentMode = 'main'; // 'main' or 'infinite'
+        let currentPlayingLevel = null;
+        let infiniteFloor = 1;
+        let infiniteCurrentScore = 0;
+
+        let targetNumber = "";
+        let userInputNumber = "";
+        let gameTimerInterval = null;
+        let inputTimerInterval = null;
+        let inputStartTime = 0;
+        let remainingInputMs = 0;
+        let heartTimerInterval = null;
+        let adTimerInterval = null;
+        let pendingPayItem = null;
+        let isEvaluating = false;
+
+        /* STAGE DEFINITIONS */
+        const STAGE_DATA = {
+            1: { name: "화염의 용탑", subtitle: "Stage 1", desc: "뜨거운 화염 속에서 기억력을 다듬으세요. (1~10단계)", bgClass: "from-orange-950/80 to-gray-900", borderClass: "border-orange-500/40", textClass: "text-orange-400", icon: "fa-fire" },
+            2: { name: "서리의 용탑", subtitle: "Stage 2", desc: "차가운 서리 위에서 정신을 고도로 집중하세요. (11~20단계)", bgClass: "from-sky-950/80 to-gray-900", borderClass: "border-sky-500/40", textClass: "text-sky-400", icon: "fa-snowflake" },
+            3: { name: "뇌전의 용탑", subtitle: "Stage 3", desc: "번개 같은 스피드로 숫자를 정확히 기억하세요. (21~30단계)", bgClass: "from-yellow-950/80 to-gray-900", borderClass: "border-yellow-500/40", textClass: "text-yellow-400", icon: "fa-bolt" },
+            4: { name: "독무의 용탑", subtitle: "Stage 4", desc: "자줏빛 독안개 속에서 흔들리지 말고 외우세요. (31~40단계)", bgClass: "from-purple-950/80 to-gray-900", borderClass: "border-purple-500/40", textClass: "text-purple-400", icon: "fa-skull text-purple-400" },
+            5: { name: "심연의 용탑", subtitle: "Stage 5", desc: "최종 심연 속 거대 용왕의 환영을 파괴하세요! (41~50단계)", bgClass: "from-pink-950/80 to-gray-900", borderClass: "border-pink-500/40", textClass: "text-pink-400", icon: "fa-dragon text-pink-500" }
+        };
+
+        /* DIFFICULTY SCALER (Main Mode: Digits stay stable for 3~5 levels) */
+        function getLevelConfig(lvl) {
+            let digits = 3;
+            if (lvl >= 4) digits = 4;
+            if (lvl >= 7) digits = 5;
+            if (lvl >= 11) digits = 6;
+            if (lvl >= 15) digits = 7;
+            if (lvl >= 20) digits = 8;
+            if (lvl >= 25) digits = 9;
+            if (lvl >= 31) digits = 10;
+            if (lvl >= 36) digits = 11;
+            if (lvl >= 41) digits = 12;
+            if (lvl >= 46) digits = 13;
+            if (lvl >= 49) digits = 14;
+
+            let displayTime = Math.max(1.0, 2.6 - (lvl * 0.028)).toFixed(1);
+            if (lvl % 10 === 0) displayTime = Math.max(0.8, (displayTime - 0.2)).toFixed(1);
+
+            return { level: lvl, digits, displayTime: parseFloat(displayTime), isBoss: (lvl % 10 === 0), stage: Math.ceil(lvl / 10) };
+        }
+
+        /* DIFFICULTY SCALER (Infinite Mode: Increases every 3 floors) */
+        function getInfiniteConfig(floor) {
+            const tier = Math.floor((floor - 1) / 3) + 1;
+            const digits = 3 + (tier - 1);
+            const displayTime = Math.max(0.6, (2.5 - (tier - 1) * 0.12)).toFixed(1);
+            return { floor, tier, digits, displayTime: parseFloat(displayTime) };
+        }
+
+        /* EXPONENTIAL SCORING CALCULATOR FOR INFINITE MODE */
+        function calculateInfiniteScore(config, remainingMs) {
+            const baseScore = Math.floor(100 * Math.pow(1.65, config.tier - 1));
+            const bonusScore = Math.floor((remainingMs / 1000) * 60 * config.tier);
+            return { baseScore, bonusScore, totalAdded: baseScore + bonusScore };
+        }
+
+        /* AUDIO SYNTHESIZER */
+        function playSound(type) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'click') {
+                    osc.frequency.setValueAtTime(480, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.04, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.04);
+                } else if (type === 'success') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08);
+                    osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16);
+                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.35);
+                } else if (type === 'fail') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    osc.frequency.setValueAtTime(130, ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.09, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.35);
+                } else if (type === 'roar') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.5);
+                    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.5);
+                }
+            } catch(e) {}
+        }
+
+        window.onload = function() {
+            loadSavedData();
+            startHeartTimerTicker();
+            renderLevelGrid();
+            renderMissions();
+            updateHUD();
+            updateStatsView();
+        };
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('dragon_tower_memory_v2');
+            if (saved) {
+                try { gameState = { ...gameState, ...JSON.parse(saved) }; } catch(e) {}
+            }
+            if (!gameState.completedMissions.includes('d1')) {
+                gameState.completedMissions.push('d1');
+                gameState.hearts = Math.min(MAX_HEARTS, gameState.hearts + 1);
+                saveData();
+            }
+            calculateOfflineHearts();
+        }
+
+        function saveData() {
+            localStorage.setItem('dragon_tower_memory_v2', JSON.stringify(gameState));
+        }
+
+        function calculateOfflineHearts() {
+            const now = Date.now();
+            if (isUnlimitedActive()) return;
+
+            if (gameState.hearts < MAX_HEARTS) {
+                const elapsedSec = Math.floor((now - gameState.lastHeartTime) / 1000);
+                const heartsToAdd = Math.floor(elapsedSec / HEART_RECHARGE_TIME);
+                if (heartsToAdd > 0) {
+                    gameState.hearts = Math.min(MAX_HEARTS, gameState.hearts + heartsToAdd);
+                    gameState.lastHeartTime = now - ((elapsedSec % HEART_RECHARGE_TIME) * 1000);
+                    saveData();
+                }
+            } else {
+                gameState.lastHeartTime = now;
+            }
+        }
+
+        function startHeartTimerTicker() {
+            if (heartTimerInterval) clearInterval(heartTimerInterval);
+            heartTimerInterval = setInterval(() => {
+                const now = Date.now();
+                if (isUnlimitedActive()) {
+                    document.getElementById('hud-heart-timer').innerText = "무제한";
+                    document.getElementById('hud-heart-timer').classList.remove('hidden');
+                    return;
+                }
+
+                if (gameState.hearts < MAX_HEARTS) {
+                    const elapsedSec = Math.floor((now - gameState.lastHeartTime) / 1000);
+                    if (elapsedSec >= HEART_RECHARGE_TIME) {
+                        calculateOfflineHearts();
+                        updateHUD();
+                    } else {
+                        const remainSec = HEART_RECHARGE_TIME - elapsedSec;
+                        const m = String(Math.floor(remainSec / 60)).padStart(2, '0');
+                        const s = String(remainSec % 60).padStart(2, '0');
+                        document.getElementById('hud-heart-timer').innerText = `${m}:${s}`;
+                        document.getElementById('hud-heart-timer').classList.remove('hidden');
+                    }
+                } else {
+                    document.getElementById('hud-heart-timer').classList.add('hidden');
+                }
+            }, 1000);
+        }
+
+        function isUnlimitedActive() {
+            return gameState.unlimitedUntil && Date.now() < gameState.unlimitedUntil;
+        }
+
+        function consumeHeart() {
+            if (isUnlimitedActive()) return true;
+            if (gameState.hearts > 0) {
+                if (gameState.hearts === MAX_HEARTS) {
+                    gameState.lastHeartTime = Date.now();
+                }
+                gameState.hearts--;
+                saveData();
+                updateHUD();
+                return true;
+            }
+            return false;
+        }
+
+        function updateHUD() {
+            const heartDisplay = document.getElementById('hud-hearts-count');
+            heartDisplay.innerText = isUnlimitedActive() ? "∞" : `${gameState.hearts}/${MAX_HEARTS}`;
+            document.getElementById('hud-infinite-score').innerText = gameState.infiniteHighScore.toLocaleString();
+        }
+
+        function switchStage(stageNum) {
+            playSound('click');
+            gameState.activeStage = stageNum;
+            
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.getElementById(`stage-btn-${i}`);
+                btn.className = (i === stageNum) 
+                    ? "stage-tab-btn flex-1 min-w-[65px] py-2 px-1 rounded-lg text-center bg-amber-500 text-gray-950 font-black shadow"
+                    : "stage-tab-btn flex-1 min-w-[65px] py-2 px-1 rounded-lg text-center text-gray-400 hover:text-gray-200";
+            }
+
+            const stage = STAGE_DATA[stageNum];
+            const banner = document.getElementById('stage-banner');
+            banner.className = `relative rounded-2xl p-5 border bg-gradient-to-r ${stage.bgClass} ${stage.borderClass} shadow-xl transition-all duration-300`;
+            document.getElementById('stage-subtitle').innerText = stage.subtitle;
+            document.getElementById('stage-title').innerText = stage.name;
+            document.getElementById('stage-desc').innerText = stage.desc;
+            document.getElementById('stage-dragon-icon').innerHTML = `<i class="fa-solid ${stage.icon}"></i>`;
+
+            renderLevelGrid();
+        }
+
+        function renderLevelGrid() {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = "";
+
+            const startLvl = (gameState.activeStage - 1) * 10 + 1;
+            const endLvl = gameState.activeStage * 10;
+
+            for (let lvl = startLvl; lvl <= endLvl; lvl++) {
+                const config = getLevelConfig(lvl);
+                const stars = gameState.clearedLevels[lvl] || 0;
+                const isUnlocked = (lvl === 1) || gameState.clearedLevels.hasOwnProperty(lvl - 1);
+
+                const card = document.createElement('div');
+                
+                if (isUnlocked) {
+                    card.onclick = () => startMainLevel(lvl);
+                    card.className = "bg-gray-900/90 hover:bg-gray-800 border border-gray-700/80 p-3.5 rounded-xl flex flex-col justify-between cursor-pointer transition-all active:scale-95 shadow group relative overflow-hidden";
+                    
+                    let starHTML = "";
+                    for (let s = 1; s <= 3; s++) {
+                        starHTML += `<i class="fa-solid fa-star ${s <= stars ? 'text-amber-400' : 'text-gray-700'} text-xs"></i>`;
+                    }
+
+                    card.innerHTML = `
+                        ${config.isBoss ? `<span class="absolute top-0 right-0 bg-red-600 text-white font-black text-[9px] px-1.5 py-0.5 rounded-bl-lg">BOSS</span>` : ''}
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-gray-400 group-hover:text-amber-400 transition-colors">LEVEL ${lvl}</span>
+                            <span class="text-[10px] text-amber-300 font-mono">${config.digits}자리</span>
+                        </div>
+                        <div class="my-2 flex items-center justify-center">
+                            <i class="${config.isBoss ? 'fa-solid fa-dragon text-red-500 text-2xl animate-pulse' : 'fa-solid fa-shield text-gray-400 text-xl'}"></i>
+                        </div>
+                        <div class="flex items-center justify-center gap-1">${starHTML}</div>
+                    `;
+                } else {
+                    card.className = "bg-gray-950/60 border border-gray-800/60 p-3.5 rounded-xl flex flex-col items-center justify-center text-gray-600 cursor-not-allowed opacity-50";
+                    card.innerHTML = `
+                        <i class="fa-solid fa-lock text-xl mb-1"></i>
+                        <span class="text-xs font-bold">LEVEL ${lvl}</span>
+                    `;
+                }
+                grid.appendChild(card);
+            }
+        }
+
+        function startMainLevel(lvl) {
+            playSound('click');
+            if (!isUnlimitedActive() && gameState.hearts <= 0) {
+                showToast("하트가 부족합니다! 상점에서 충전하세요.");
+                switchTab('shop');
+                return;
+            }
+
+            currentMode = 'main';
+            currentPlayingLevel = getLevelConfig(lvl);
+            userInputNumber = "";
+            isEvaluating = false;
+
+            setupGameUI();
+            runMemoryPhase();
+        }
+
+        function startInfiniteGame() {
+            playSound('roar');
+            if (!isUnlimitedActive() && gameState.hearts <= 0) {
+                showToast("하트가 부족합니다! 상점에서 충전하세요.");
+                switchTab('shop');
+                return;
+            }
+
+            currentMode = 'infinite';
+            infiniteFloor = 1;
+            infiniteCurrentScore = 0;
+            currentPlayingLevel = getInfiniteConfig(infiniteFloor);
+            userInputNumber = "";
+            isEvaluating = false;
+
+            setupGameUI();
+            runMemoryPhase();
+        }
+
+        function setupGameUI() {
+            const modal = document.getElementById('game-modal');
+            modal.classList.remove('hidden');
+
+            const scoreBox = document.getElementById('game-score-box');
+            const scoreSpacer = document.getElementById('game-score-spacer');
+
+            if (currentMode === 'main') {
+                const stageData = STAGE_DATA[currentPlayingLevel.stage];
+                document.getElementById('game-stage-badge').innerText = `STAGE ${currentPlayingLevel.stage}`;
+                document.getElementById('game-stage-badge').className = `text-[9px] font-bold px-2 py-0.5 rounded-full ${stageData.textClass} bg-gray-800 border ${stageData.borderClass}`;
+                document.getElementById('game-level-title').innerText = currentPlayingLevel.isBoss ? `LEVEL ${currentPlayingLevel.level} (BOSS)` : `LEVEL ${currentPlayingLevel.level}`;
+                scoreBox.classList.add('hidden');
+                scoreSpacer.classList.remove('hidden');
+            } else {
+                document.getElementById('game-stage-badge').innerText = `INFINITE BOSS`;
+                document.getElementById('game-stage-badge').className = `text-[9px] font-bold px-2 py-0.5 rounded-full text-rose-300 bg-rose-950 border border-rose-500/50`;
+                document.getElementById('game-level-title').innerText = `${infiniteFloor}층 (거대 용의 둥지)`;
+                scoreBox.classList.remove('hidden');
+                scoreSpacer.classList.add('hidden');
+                document.getElementById('game-current-score').innerText = infiniteCurrentScore.toLocaleString();
+            }
+
+            document.getElementById('game-digit-count').innerText = currentPlayingLevel.digits;
+            targetNumber = generateRandomNumber(currentPlayingLevel.digits);
+        }
+
+        function generateRandomNumber(length) {
+            let res = "";
+            for (let i = 0; i < length; i++) {
+                res += (i === 0) ? Math.floor(Math.random() * 9) + 1 : Math.floor(Math.random() * 10);
+            }
+            return res;
+        }
+
+        /* PHASE 1: MEMORY PHASE */
+        function runMemoryPhase() {
+            const phaseLabel = document.getElementById('game-phase-label');
+            const inputTimerText = document.getElementById('game-input-timer-text');
+            const numberDisplay = document.getElementById('game-number-display');
+            const keypad = document.getElementById('game-keypad-container');
+            const timerBar = document.getElementById('game-timer-bar');
+
+            phaseLabel.innerText = "숫자를 기억하세요!";
+            phaseLabel.className = "text-sm font-extrabold text-amber-400 uppercase tracking-widest text-center animate-pulse";
+            inputTimerText.classList.add('hidden');
+
+            numberDisplay.innerText = targetNumber;
+            keypad.classList.add('opacity-40', 'pointer-events-none');
+
+            timerBar.className = "absolute bottom-0 left-0 h-2 bg-gradient-to-r from-emerald-400 via-amber-400 to-red-500 transition-all duration-75";
+            timerBar.style.width = '100%';
+
+            let startTime = Date.now();
+            const duration = currentPlayingLevel.displayTime * 1000;
+
+            if (gameTimerInterval) clearInterval(gameTimerInterval);
+
+            gameTimerInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const ratio = Math.max(0, (duration - elapsed) / duration);
+                timerBar.style.width = `${ratio * 100}%`;
+
+                if (elapsed >= duration) {
+                    clearInterval(gameTimerInterval);
+                    runInputPhase();
+                }
+            }, 25);
+        }
+
+        /* PHASE 2: 3-SECOND INPUT PHASE WITH AUTO-SUBMIT */
+        function runInputPhase() {
+            const phaseLabel = document.getElementById('game-phase-label');
+            const inputTimerText = document.getElementById('game-input-timer-text');
+            const numberDisplay = document.getElementById('game-number-display');
+            const keypad = document.getElementById('game-keypad-container');
+            const timerBar = document.getElementById('game-timer-bar');
+
+            phaseLabel.innerText = "기억한 숫자를 입력하세요!";
+            phaseLabel.className = "text-sm font-extrabold text-emerald-400 uppercase tracking-widest text-center";
+            inputTimerText.classList.remove('hidden');
+
+            numberDisplay.innerText = "_".repeat(currentPlayingLevel.digits);
+            keypad.classList.remove('opacity-40', 'pointer-events-none');
+
+            inputStartTime = Date.now();
+            if (inputTimerInterval) clearInterval(inputTimerInterval);
+
+            inputTimerInterval = setInterval(() => {
+                if (isEvaluating) return;
+
+                const elapsed = Date.now() - inputStartTime;
+                remainingInputMs = Math.max(0, INPUT_TIME_LIMIT - elapsed);
+                const ratio = remainingInputMs / INPUT_TIME_LIMIT;
+
+                document.getElementById('input-timer-sec').innerText = (remainingInputMs / 1000).toFixed(1);
+
+                timerBar.style.width = `${ratio * 100}%`;
+                if (ratio > 0.5) {
+                    timerBar.className = "absolute bottom-0 left-0 h-2 bg-emerald-500 transition-all duration-75";
+                } else if (ratio > 0.2) {
+                    timerBar.className = "absolute bottom-0 left-0 h-2 bg-amber-400 transition-all duration-75";
+                } else {
+                    timerBar.className = "absolute bottom-0 left-0 h-2 bg-red-600 transition-all duration-75 animate-pulse";
+                }
+
+                if (remainingInputMs <= 0) {
+                    clearInterval(inputTimerInterval);
+                    handleInputTimeout();
+                }
+            }, 30);
+        }
+
+        function handleInputTimeout() {
+            if (isEvaluating) return;
+            isEvaluating = true;
+            playSound('fail');
+            consumeHeart();
+            
+            const numBox = document.getElementById('game-number-box');
+            numBox.classList.add('shake-err');
+            setTimeout(() => numBox.classList.remove('shake-err'), 400);
+
+            showResultModal(false, 0, true);
+        }
+
+        /* KEYPAD INPUT ENGINE WITH INSTANT AUTO-SUBMIT */
+        function pressKey(key) {
+            if (isEvaluating) return;
+            playSound('click');
+
+            if (key === 'clear') {
+                userInputNumber = "";
+            } else if (key === 'back') {
+                userInputNumber = userInputNumber.slice(0, -1);
+            } else {
+                if (userInputNumber.length < currentPlayingLevel.digits) {
+                    userInputNumber += key;
+                }
+            }
+
+            const numberDisplay = document.getElementById('game-number-display');
+            numberDisplay.innerText = userInputNumber.length === 0 ? "_".repeat(currentPlayingLevel.digits) : userInputNumber;
+
+            // AUTO-SUBMIT FEATURE: Triggers instantly as soon as digit length reaches target!
+            if (userInputNumber.length === currentPlayingLevel.digits) {
+                isEvaluating = true;
+                if (inputTimerInterval) clearInterval(inputTimerInterval);
+                setTimeout(() => {
+                    submitAnswer();
+                }, 50);
+            }
+        }
+
+        // Keyboard listener
+        window.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('game-modal');
+            if (modal.classList.contains('hidden') || isEvaluating) return;
+
+            if (e.key >= '0' && e.key <= '9') pressKey(e.key);
+            else if (e.key === 'Backspace') pressKey('back');
+            else if (e.key === 'Enter') submitAnswer();
+        });
+
+        /* SUBMIT ANSWER & EVALUATE */
+        function submitAnswer() {
+            if (userInputNumber.length < currentPlayingLevel.digits && !isEvaluating) {
+                showToast(`${currentPlayingLevel.digits}자리를 모두 입력해주세요.`);
+                return;
+            }
+
+            isEvaluating = true;
+            if (inputTimerInterval) clearInterval(inputTimerInterval);
+
+            const isSuccess = (userInputNumber === targetNumber);
+
+            if (isSuccess) {
+                playSound('success');
+                if (currentMode === 'main') {
+                    const stars = 3;
+                    gameState.clearedLevels[currentPlayingLevel.level] = Math.max(gameState.clearedLevels[currentPlayingLevel.level] || 0, stars);
+                    saveData();
+                    updateHUD();
+                    renderLevelGrid();
+                    updateStatsView();
+                    showResultModal(true, stars, false);
+                } else {
+                    const scoreData = calculateInfiniteScore(currentPlayingLevel, remainingInputMs);
+                    infiniteCurrentScore += scoreData.totalAdded;
+
+                    if (infiniteFloor > gameState.infiniteMaxFloor) gameState.infiniteMaxFloor = infiniteFloor;
+                    if (infiniteCurrentScore > gameState.infiniteHighScore) gameState.infiniteHighScore = infiniteCurrentScore;
+
+                    saveData();
+                    updateHUD();
+                    updateStatsView();
+                    showResultModal(true, 0, false, scoreData);
+                }
+            } else {
+                playSound('fail');
+                consumeHeart();
+                showResultModal(false, 0, false);
+            }
+        }
+
+        /* RESULT MODAL DISPLAY */
+        function showResultModal(isSuccess, stars, isTimeout = false, scoreData = null) {
+            const modal = document.getElementById('result-modal');
+            modal.classList.remove('hidden');
+
+            const iconBox = document.getElementById('result-icon-box');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+            const starsContainer = document.getElementById('result-stars');
+            const scoreBreakdown = document.getElementById('result-score-breakdown');
+            const nextBtn = document.getElementById('result-next-btn');
+
+            document.getElementById('res-target-num').innerText = targetNumber;
+            document.getElementById('res-user-num').innerText = userInputNumber || (isTimeout ? "시간 초과" : "미입력");
+
+            if (isSuccess) {
+                iconBox.className = "w-20 h-20 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-4xl border border-emerald-500/40";
+                icon.className = "fa-solid fa-crown animate-bounce";
+                title.innerText = (currentMode === 'main') ? "클리어 성공!" : `${infiniteFloor}층 정복 성공!`;
+                desc.innerText = "자동 제출로 빠르게 정답을 맞췄습니다!";
+
+                if (currentMode === 'main') {
+                    starsContainer.classList.remove('hidden');
+                    scoreBreakdown.classList.add('hidden');
+                    nextBtn.innerText = "다음 단계 도전";
+                } else {
+                    starsContainer.classList.add('hidden');
+                    scoreBreakdown.classList.remove('hidden');
+                    document.getElementById('res-base-score').innerText = scoreData.baseScore.toLocaleString();
+                    document.getElementById('res-bonus-score').innerText = `+${scoreData.bonusScore.toLocaleString()}`;
+                    document.getElementById('res-total-score').innerText = infiniteCurrentScore.toLocaleString();
+                    nextBtn.innerText = "다음 층으로 상승!";
+                }
+                nextBtn.className = "w-full bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold py-3 rounded-xl transition-all shadow";
+            } else {
+                iconBox.className = "w-20 h-20 mx-auto rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-4xl border border-red-500/40";
+                icon.className = isTimeout ? "fa-solid fa-hourglass-end" : "fa-solid fa-heart-crack";
+                title.innerText = isTimeout ? "시간 초과! (3.0초 초과)" : "기억 실패...";
+                desc.innerText = isTimeout ? "3초 안에 숫자를 완독하지 못했습니다." : "입력한 숫자가 틀렸습니다 (하트 -1).";
+
+                starsContainer.classList.add('hidden');
+                scoreBreakdown.classList.add('hidden');
+
+                nextBtn.innerText = (currentMode === 'main') ? "다시 도전하기" : "무한 챌린지 재도전";
+                nextBtn.className = "w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-all shadow";
+            }
+        }
+
+        function closeGameModal() {
+            if (gameTimerInterval) clearInterval(gameTimerInterval);
+            if (inputTimerInterval) clearInterval(inputTimerInterval);
+            document.getElementById('game-modal').classList.add('hidden');
+        }
+
+        function closeResultModal() {
+            document.getElementById('result-modal').classList.add('hidden');
+            closeGameModal();
+        }
+
+        function nextLevelFromResult() {
+            document.getElementById('result-modal').classList.add('hidden');
+            if (currentMode === 'main') {
+                const nextLvl = currentPlayingLevel.level + (gameState.clearedLevels[currentPlayingLevel.level] ? 1 : 0);
+                if (nextLvl <= 50) startMainLevel(nextLvl);
+                else {
+                    showToast("50단계를 모두 정복하셨습니다! 무한 챌린지에 도전하세요.");
+                    switchTab('infinite');
+                }
+            } else {
+                if (userInputNumber === targetNumber) infiniteFloor++;
+                currentPlayingLevel = getInfiniteConfig(infiniteFloor);
+                userInputNumber = "";
+                isEvaluating = false;
+                setupGameUI();
+                runMemoryPhase();
+            }
+        }
+
+        const MISSION_DATA = {
+            daily: [
+                { id: 'd1', title: '일일 출석하기', desc: '오늘 용의 탑에 접속하기', reward: 1 },
+                { id: 'd2', title: '기억 도전 3회', desc: '기억력 테스트 3회 진행', reward: 1 },
+                { id: 'd3', title: '3초의 순발력', desc: '제한시간 내 2회 연속 입력 성공', reward: 2 }
+            ],
+            weekly: [
+                { id: 'w1', title: '1스테이지 정복', desc: '화염의 용탑 10단계 클리어', reward: 3 },
+                { id: 'w2', title: '거대용 도전자', desc: '무한 챌린지 5층 이상 도달', reward: 3 },
+                { id: 'w3', title: '광고 3회 시청', desc: '무료 광고 3회 시청하기', reward: 2 }
+            ],
+            monthly: [
+                { id: 'm1', title: '30단계 도달', desc: '30단계 뇌전의 용탑 정복', reward: 5 },
+                { id: 'm2', title: '점수 10,000점 달성', desc: '무한 모드 최고점 10,000점 돌파', reward: 5 }
+            ],
+            achieve: [
+                { id: 'a1', title: '탑의 정복자', desc: '메인 50단계 완벽 통과', reward: 10 },
+                { id: 'a2', title: '초음속 기억력', desc: '10자리를 3초 내 완벽 복기', reward: 5 }
+            ]
+        };
+
+        function switchMissionSubtab(subtab) {
+            playSound('click');
+            gameState.activeMissionSubtab = subtab;
+            ['daily', 'weekly', 'monthly', 'achieve'].forEach(st => {
+                const btn = document.getElementById(`subtab-${st}`);
+                btn.className = (st === subtab) ? "pb-2 border-b-2 border-amber-400 text-amber-400 font-bold" : "pb-2 border-b-2 border-transparent text-gray-400 font-semibold";
+            });
+            renderMissions();
+        }
+
+        function renderMissions() {
+            const list = document.getElementById('mission-list');
+            list.innerHTML = "";
+            const missions = MISSION_DATA[gameState.activeMissionSubtab] || [];
+
+            missions.forEach(m => {
+                const isClaimed = gameState.completedMissions.includes(m.id);
+                const card = document.createElement('div');
+                card.className = "bg-gray-900/90 p-4 rounded-xl border border-gray-800 flex items-center justify-between gap-3 shadow";
+
+                card.innerHTML = `
+                    <div class="space-y-0.5">
+                        <p class="text-sm font-bold text-white">${m.title}</p>
+                        <p class="text-xs text-gray-400">${m.desc}</p>
+                        <span class="inline-block text-[10px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 mt-1">
+                            보상: ❤️ +${m.reward}
+                        </span>
+                    </div>
+                    <div>
+                        ${isClaimed ? 
+                            `<button class="bg-gray-800 text-gray-500 text-xs font-bold px-3 py-2 rounded-lg cursor-not-allowed border border-gray-700" disabled>완료됨</button>` :
+                            `<button onclick="claimMissionReward('${m.id}', ${m.reward})" class="bg-amber-500 hover:bg-amber-400 text-gray-950 text-xs font-bold px-3.5 py-2 rounded-lg transition-all active:scale-95 shadow">보상 받기</button>`
+                        }
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function claimMissionReward(id, reward) {
+            playSound('success');
+            gameState.completedMissions.push(id);
+            gameState.hearts = Math.min(MAX_HEARTS, gameState.hearts + reward);
+            saveData();
+            updateHUD();
+            renderMissions();
+            updateStatsView();
+            showToast(`미션 완료! 하트 ${reward}개가 지급되었습니다.`);
+        }
+
+        /* SHOP & ADS */
+        function watchRewardAd() {
+            playSound('click');
+            const adModal = document.getElementById('ad-modal');
+            const progressBar = document.getElementById('ad-progress-bar');
+            const timerText = document.getElementById('ad-timer-text');
+            const closeBtn = document.getElementById('ad-close-btn');
+
+            adModal.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            closeBtn.disabled = true;
+            closeBtn.className = "w-full bg-gray-800 text-gray-500 font-bold py-3 rounded-xl cursor-not-allowed opacity-50";
+
+            let remaining = 5;
+            timerText.innerText = `남은 시간: ${remaining}초`;
+            setTimeout(() => { progressBar.style.width = '100%'; }, 50);
+
+            if (adTimerInterval) clearInterval(adTimerInterval);
+            adTimerInterval = setInterval(() => {
+                remaining--;
+                if (remaining > 0) {
+                    timerText.innerText = `남은 시간: ${remaining}초`;
+                } else {
+                    clearInterval(adTimerInterval);
+                    timerText.innerText = "시청 완료!";
+                    closeBtn.disabled = false;
+                    closeBtn.className = "w-full bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-extrabold py-3 rounded-xl shadow-lg transition-all cursor-pointer active:scale-95";
+                    closeBtn.innerText = "보상 수령하기 (❤️ +1)";
+                }
+            }, 1000);
+        }
+
+        function finishRewardAd() {
+            playSound('success');
+            document.getElementById('ad-modal').classList.add('hidden');
+            gameState.hearts = Math.min(MAX_HEARTS, gameState.hearts + 1);
+            saveData();
+            updateHUD();
+            showToast("보상 획득! 하트 1개가 충전되었습니다.");
+        }
+
+        function buyTestItem(name, hearts, price) {
+            playSound('click');
+            pendingPayItem = { type: 'hearts', amount: hearts, name, price };
+            document.getElementById('pay-modal-desc').innerText = `상품: ${name} (${price})`;
+            document.getElementById('pay-modal').classList.remove('hidden');
+        }
+
+        function buyUnlimitedPass() {
+            playSound('click');
+            pendingPayItem = { type: 'unlimited', hours: 24, name: '무제한 하트 (24시간)', price: '9,900원' };
+            document.getElementById('pay-modal-desc').innerText = `상품: 무제한 하트 24시간 패스 (9,900원)`;
+            document.getElementById('pay-modal').classList.remove('hidden');
+        }
+
+        function closePayModal() {
+            document.getElementById('pay-modal').classList.add('hidden');
+            pendingPayItem = null;
+        }
+
+        function confirmPayment() {
+            playSound('success');
+            if (!pendingPayItem) return;
+
+            if (pendingPayItem.type === 'hearts') {
+                gameState.hearts = Math.min(MAX_HEARTS, gameState.hearts + pendingPayItem.amount);
+                showToast(`결제 완료! 하트 ${pendingPayItem.amount}개가 지급되었습니다.`);
+            } else if (pendingPayItem.type === 'unlimited') {
+                gameState.unlimitedUntil = Date.now() + (24 * 60 * 60 * 1000);
+                showToast("결제 완료! 24시간 동안 하트 무제한이 적용됩니다.");
+            }
+
+            saveData();
+            updateHUD();
+            closePayModal();
+        }
+
+        function updateStatsView() {
+            const maxLvl = Math.max(0, ...Object.keys(gameState.clearedLevels).map(Number));
+            document.getElementById('stat-max-level').innerText = maxLvl > 0 ? `${maxLvl}단계` : "미달성";
+
+            document.getElementById('stat-inf-score').innerText = gameState.infiniteHighScore.toLocaleString();
+            document.getElementById('stat-inf-floor').innerText = `${gameState.infiniteMaxFloor}층`;
+            document.getElementById('stat-completed-missions').innerText = `${gameState.completedMissions.length}개`;
+
+            document.getElementById('inf-best-floor').innerText = `${gameState.infiniteMaxFloor} 층`;
+            document.getElementById('inf-high-score').innerText = gameState.infiniteHighScore.toLocaleString();
+
+            const rankTitle = document.getElementById('rank-title');
+            const rankDesc = document.getElementById('rank-desc');
+            const rankIconBox = document.getElementById('rank-badge-icon');
+
+            if (gameState.infiniteHighScore >= 50000 || maxLvl >= 50) {
+                rankTitle.innerText = "신화: 용왕 마스터";
+                rankDesc.innerText = "거대 용의 환영을 격파한 신화적 기억력의 소유자!";
+                rankIconBox.className = "w-16 h-16 mx-auto rounded-full bg-rose-500/20 border-2 border-rose-400 flex items-center justify-center text-rose-300 text-3xl mb-2 pulse-glow";
+            } else if (gameState.infiniteHighScore >= 15000 || maxLvl >= 40) {
+                rankTitle.innerText = "독무의 대마법사";
+                rankDesc.innerText = "3초의 압박 속에서 긴 자릿수를 빛의 속도로 복기합니다.";
+                rankIconBox.className = "w-16 h-16 mx-auto rounded-full bg-purple-500/20 border-2 border-purple-400 flex items-center justify-center text-purple-300 text-3xl mb-2 pulse-glow";
+            } else if (gameState.infiniteHighScore >= 5000 || maxLvl >= 25) {
+                rankTitle.innerText = "뇌전의 기사단장";
+                rankDesc.innerText = "번개처럼 빠른 자동 입력과 정교한 기억력의 소유자.";
+                rankIconBox.className = "w-16 h-16 mx-auto rounded-full bg-yellow-500/20 border-2 border-yellow-400 flex items-center justify-center text-yellow-300 text-3xl mb-2 pulse-glow";
+            } else if (maxLvl >= 10) {
+                rankTitle.innerText = "서리의 수련생";
+                rankDesc.innerText = "기초 층을 통과하여 용의 탑 정상을 향해 나아가고 있습니다.";
+                rankIconBox.className = "w-16 h-16 mx-auto rounded-full bg-sky-500/20 border-2 border-sky-400 flex items-center justify-center text-sky-300 text-3xl mb-2 pulse-glow";
+            } else {
+                rankTitle.innerText = "견습 모험가";
+                rankDesc.innerText = "용의 탑 입구를 기웃거리며 기억력을 다듬는 중입니다.";
+                rankIconBox.className = "w-16 h-16 mx-auto rounded-full bg-gray-700/20 border-2 border-gray-600 flex items-center justify-center text-gray-400 text-3xl mb-2";
+            }
+        }
+
+        function switchTab(tabId) {
+            playSound('click');
+            ['tower', 'infinite', 'missions', 'shop', 'stats'].forEach(t => {
+                const content = document.getElementById(`tab-${t}`);
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (t === tabId) {
+                    content.classList.remove('hidden');
+                    navBtn.className = "nav-btn active flex-1 py-1 text-amber-400 flex flex-col items-center gap-1 transition-all";
+                } else {
+                    content.classList.add('hidden');
+                    navBtn.className = "nav-btn flex-1 py-1 text-gray-400 hover:text-gray-200 flex flex-col items-center gap-1 transition-all";
+                }
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-2');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-2');
+            }, 2500);
+        }
+
+        function confirmResetData() {
+            if (window.confirm("정말로 모든 진행 상황 및 무한 모드 기록을 초기화하시겠습니까?")) {
+                localStorage.removeItem('dragon_tower_memory_v2');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
